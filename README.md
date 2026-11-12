@@ -1,0 +1,121 @@
+# Conversational Parts Search Agent (prototype)
+
+A mechanic says *"Find an oil filter for a Tata Harrier"*. Gemini extracts the request, then Boodmo and
+AutoDukan advance independently and concurrently through their own search and vehicle forms. The
+graph shares mechanic-provided vehicle facts, while each adapter validates those facts against its own
+options and keeps its category and selected variant separate. Boodmo can verify compatibility through its
+fitment filter. AutoDukan results remain unverified because exact product compatibility is not independently confirmed.
+
+This extends the *Hybrid Vendor Search Architecture* in `docs/`. It is the "approved browser workflow" adapter
+plus the LangGraph "ask missing questions" step, moved to the point where the site actually asks.
+
+## Run it
+
+```bash
+pip3 install -r requirements.txt
+python3 -m playwright install chromium
+```
+
+`.env` needs `GEMINI_API_KEY` and `GEMINI_MODEL` (already present).
+
+```bash
+python3 run_agent.py                      # type the request and answers
+python3 run_agent.py --voice              # speak; it talks back (hands-free, stops on silence)
+python3 run_agent.py --show-browser       # watch Chromium drive all suppliers
+python3 run_agent.py --say "Harrier ka oil filter chahiye, 2021 diesel automatic" --answers "teesra"
+```
+
+Example (real output, trimmed):
+
+```
+Mechanic: Harrier ka oil filter chahiye
+Agent:    Okay, looking for an oil filter for a Tata Harrier on Boodmo and AutoDukan.
+Agent:    Which year is the Harrier? Boodmo lists 2019 to 2026.
+Mechanic: 2021
+Agent:    Boodmo lists 16 Harrier 2021 variants. Is it automatic or manual?
+Mechanic: XZ plus                      <- STT mishearing of "XZA plus", said out of turn
+Agent:    Just to check: is it XZ plus?
+Mechanic: no, XZA plus
+Agent:    There are 3 versions. Which one is it: 1, automatic; 2, manual, kyrotec turbocharged; 3, manual?
+Mechanic: automatic
+Agent:    Got it, the Harrier 2.0L XZA plus, automatic, diesel. Checking oil filter prices and stock across all suppliers.
+Agent:    For the Tata Harrier 2021, 2.0L XZA+ AT/Diesel/BS6, Boodmo lists 6 parts under Oil Filter that fit
+          this variant. Cheapest in stock: Tata Filtering Element H5, part KLP103969AA, ₹972 from seller
+          MSMEE/MTC/1, 9 in stock, dispatch in 2 days. ... Nothing has been ordered.
+```
+
+Each run writes an audit record (request, every question and answer, results) to `runs/`.
+
+## How it works
+
+```
+understand ──► navigate ──(a site needs input)──► [pause] interpret ──► navigate ...
+  (Gemini        (Boodmo and AutoDukan walk             (route answer to the
+   parses the     independently; each validates         requesting adapter;
+   request)       its own options)                       confirm if inferred)
+                         └──(all ready)──► collect ──► present
+                                      (parallel supplier searches)
+```
+
+| File | Role |
+|---|---|
+| `parts_agent/boodmo.py` | Browser adapter: category lookup, vehicle selector, listings, seller/stock from product pages (4 tabs in parallel) |
+| `parts_agent/auto_dukan.py` | Browser adapter: AutoDukan category tree, vehicle selector, product extraction, and detail enrichment (3 pages in parallel) |
+| `parts_agent/variants.py` | Breaks variant labels like `2.0L XZA+ AT/Diesel/BS6` into attributes and picks the next question |
+| `parts_agent/graph.py` | LangGraph loop, independent supplier profiles and concurrent navigation/search, summary, audit record |
+| `parts_agent/llm.py` | Gemini request parsing and answer matching, with async wrappers and a model fallback chain |
+| `parts_agent/voice.py` | Gemini TTS (rotating models, `spd-say` fallback), mic capture with silence detection, Gemini transcription |
+| `run_agent.py` | CLI for text or voice |
+
+For the current voice flow and the steps to connect it to a phone call, see [Voice and phone call integration](docs/VOICE_AND_PHONE_CALL_INTEGRATION.md).
+
+For the app architecture, conversation flow diagrams, and current/future vendor adapter design, see [App Architecture and Vendor Adapter Design](docs/APP_ARCHITECTURE_AND_ADAPTER_DESIGN.md).
+
+### Conversation design choices
+
+- **Ask only what the site needs.** Questions come from the live dropdowns. Details given up front ("2021
+  diesel automatic") are matched against the site's values and used without asking again.
+- **Don't read out 20 variants.** Labels are split into fuel, transmission, engine, trim and version tags.
+  The agent asks the easiest question that meaningfully narrows the list. For example, "Is it automatic or
+  manual?" comes before trim, and version tags like "Kyrotec" or "BS6 phase 2" come last. It reads out choices
+  only once 4 or fewer are left, naming only what differs between them.
+- **Verify, don't assume.** Anything the model *infers* is confirmed before use. That covers "XZA plus" given
+  as an answer to "manual or automatic?", and a trim said out of turn that speech-to-text may have misheard.
+- **Forgiving input.** Ordinals ("teesra wala", "second one"), Hinglish, typos ("Hariar" → *Did you mean…*),
+  "don't know" (moves on to a different attribute, or explains where to find the year), "cancel".
+- **Honest results.** "In stock" means a seller offer was seen on the product page. Accessory parts (e.g. "Oil
+  Filter Support Assy") are flagged as related. Masked part numbers are kept masked unless the product URL
+  confirms them. Distance isn't ranked, because Boodmo doesn't give seller addresses. Some seller codes do
+  contain a city ("Delhi/TKL", "Jaipur/SPF"), which a later distance step could use.
+
+## Findings from building it
+
+- **Boodmo specifics.** The variant list depends on the category page *and* refreshes asynchronously after a
+  year is picked. After a variant is chosen, the dropdown rewrites its labels (the engine code is dropped), so
+  the adapter tracks the selection by URL. Before that fix, re-selecting the variant crashed on the Swift. Reading it too early returned 55 variants instead of 20, so the adapter waits until the
+  dropdown is stable. Some variant labels appear twice with different catalogue IDs. The adapter checks both
+  and marks parts listed under only one of them as partial fits.
+- **Boodmo's JSON API** (`/api/v1/customer/api/catalog/...`) rejects direct calls without the app's own
+  headers. The adapter reads rendered pages only, in line with the "don't bypass access controls" rule (§6,
+  §11 of the architecture doc). Boodmo's terms for automated access still need a formal check before
+  production use.
+- **Gemini free tier is a real limit for voice.** TTS allows 3 requests/minute and, for some models, 10/day
+  per model. Today `gemini-3.8-flash` also returned 503/504 under load. The code falls back
+  (`gemini-3.5-flash-lite` for text and transcription, four TTS models, then `spd-say`), but a paid key is
+  needed for real use.
+- **Speech-to-text can reply instead of transcribe.** Flash-lite once answered the audio ("…yeh raha oil
+  filter…"). Transcription now uses a strict system instruction, and a transcript too long for the audio is
+  rejected and retried on another model.
+
+## Not done yet
+
+- AutoDukan results are keyword matches and do not prove vehicle compatibility. Confirm fitment before purchase.
+  Each supplier's result and fitment evidence is reported separately.
+- Turn-based voice (about 4 s of TTS per reply). `gemini-3.8-live` (bidirectional audio) would cut latency and
+  allow barge-in.
+- No price/distance ranking module and no order flow. Results end with "Nothing has been ordered", as the
+  ticket requires.
+- The variant label parser has been tried on Tata (Harrier) and Maruti (Swift: VXI/ZXI, AGS). Other makes
+  (Hyundai "SX(O)", Mahindra) are untested.
+
+
