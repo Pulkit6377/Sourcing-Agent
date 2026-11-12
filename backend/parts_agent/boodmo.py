@@ -30,7 +30,16 @@ BASE = "https://boodmo.com"
 UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
       "Chrome/140.0 Safari/537.36")
 CATALOG_FILE = Path(__file__).resolve().parent.parent / "data" / "boodmo_catalog.json"
+if not CATALOG_FILE.exists():
+    _alt_cat = Path(__file__).resolve().parent.parent.parent / "data" / "boodmo_catalog.json"
+    if _alt_cat.exists():
+        CATALOG_FILE = _alt_cat
+
 CACHE = Path(__file__).resolve().parent.parent / "cache" / "boodmo_categories.json"
+if not CACHE.exists():
+    _alt_cache = Path(__file__).resolve().parent.parent.parent / "cache" / "boodmo_categories.json"
+    if _alt_cache.exists():
+        CACHE = _alt_cache
 
 
 def _load_catalog() -> dict:

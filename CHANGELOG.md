@@ -6,6 +6,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2026-11-12] - Monorepo Separation: Dedicated Backend Directory
+
+### Purpose
+Organize the project into clean, decoupled `backend/` and `frontend/` directories. Move all backend-related modules, CLI runners, server code, test suites, datasets, and cache into `backend/`, and update path resolution and test harnesses to maintain full backward and forward compatibility.
+
+### Files Moved & Restructured
+- **Moved to `backend/`**:
+  - `parts_agent/` ➔ `backend/parts_agent/`
+  - `server.py` ➔ `backend/server.py`
+  - `run_agent.py` ➔ `backend/run_agent.py`
+  - `learnig.py` ➔ `backend/learnig.py`
+  - `requirements.txt` ➔ `backend/requirements.txt`
+  - `tests/` ➔ `backend/tests/`
+  - `data/` ➔ `backend/data/`
+  - `cache/` ➔ `backend/cache/`
+  - `runs/` ➔ `backend/runs/`
+  - `.env` ➔ `backend/.env` (and root `.env` maintained for fallback)
+- **Created**:
+  - `backend/__init__.py`: Package entrypoint for module imports (`import backend.server`).
+
+### Code & Configuration Updates
+- [`backend/server.py`](file:///home/habilelabs/Development/CAS/backend/server.py):
+  - Updated `sys.path` injection so the server can be run from root (`uvicorn backend.server:app`) or from backend directory (`cd backend && uvicorn server:app`).
+  - Updated `FRONTEND_DIST` resolution to look in `../frontend/dist` and local `frontend/dist`.
+  - Added multi-path `.env` loading checking both backend and root.
+- [`backend/run_agent.py`](file:///home/habilelabs/Development/CAS/backend/run_agent.py):
+  - Injected `_backend_dir` into `sys.path` to allow execution from root (`python3 backend/run_agent.py`) and inside backend.
+- [`backend/parts_agent/boodmo.py`](file:///home/habilelabs/Development/CAS/backend/parts_agent/boodmo.py):
+  - Added multi-path fallback for `CATALOG_FILE` and `CACHE`.
+- [`backend/parts_agent/graph.py`](file:///home/habilelabs/Development/CAS/backend/parts_agent/graph.py):
+  - Added multi-path fallback for `RUNS` audit directory.
+- [`backend/parts_agent/llm.py`](file:///home/habilelabs/Development/CAS/backend/parts_agent/llm.py):
+  - Added multi-path `.env` loader.
+- [`backend/tests/`](file:///home/habilelabs/Development/CAS/backend/tests/):
+  - Added dynamic sys.path resolution to all test files and `__init__.py` allowing tests to run via `python3 -m unittest discover backend/tests` or `cd backend && python3 -m unittest discover tests`.
+- [`cmd.txt`](file:///home/habilelabs/Development/CAS/cmd.txt), [`README.md`](file:///home/habilelabs/Development/CAS/README.md), [`docs/02_CODEBASE_GUIDE.md`](file:///home/habilelabs/Development/CAS/docs/02_CODEBASE_GUIDE.md), [`STUDY_GUIDE.md`](file:///home/habilelabs/Development/CAS/STUDY_GUIDE.md):
+  - Updated execution commands and architectural file path diagrams.
+
+---
+
 ## [2026-11-12] - Offline Boodmo Catalogue & Multi-Category Fallback Flow
 
 ### Purpose

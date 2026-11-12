@@ -17,6 +17,7 @@ from google.genai import types
 from pydantic import BaseModel
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 log = logging.getLogger(__name__)
 
 _client: genai.Client | None = None

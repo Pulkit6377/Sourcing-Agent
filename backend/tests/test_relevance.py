@@ -19,6 +19,12 @@ Covers all 7 mandatory test cases from the Product Relevance Specification:
 7. Test 7: Ambiguous Product ("ROLLER BLIND ASSY-PANORAMAROOF")
    - Classified as ACCESSORY or COMPONENT, never as Primary Match
 """
+import sys
+from pathlib import Path
+_backend_dir = str(Path(__file__).resolve().parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 import unittest
 from parts_agent.relevance import (
     classify_product,

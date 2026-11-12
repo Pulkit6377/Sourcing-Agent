@@ -1,4 +1,10 @@
 """Deterministic integration tests for FastAPI endpoints and event streaming."""
+import sys
+from pathlib import Path
+_backend_dir = str(Path(__file__).resolve().parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 import json
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch

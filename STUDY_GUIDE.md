@@ -79,7 +79,7 @@ flowchart TD
 
 ### 3.1 CLI Entrypoint (`run_agent.py`)
 
-[run_agent.py](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/run_agent.py) is the executable entrypoint for the CLI application.
+[run_agent.py](file:///home/habilelabs/Development/CAS/backend/run_agent.py) is the executable entrypoint for the CLI application.
 
 #### Key Functions:
 - **`main()`**: Parses CLI arguments (`--show-browser`, `--record-video`, `--voice`, `--say`, `--answers`, `-v`).
@@ -92,7 +92,7 @@ flowchart TD
 
 ### 3.2 LangGraph State Machine (`parts_agent/graph.py`)
 
-[parts_agent/graph.py](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/graph.py) is the brain that coordinates supplier adapters and maintains session state.
+[parts_agent/graph.py](file:///home/habilelabs/Development/CAS/backend/parts_agent/graph.py) is the brain that coordinates supplier adapters and maintains session state.
 
 #### Core Concepts:
 - **`Session` Class**:
@@ -119,7 +119,7 @@ flowchart TD
 
 ### 3.3 Core Data Models (`parts_agent/models.py`)
 
-[parts_agent/models.py](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/models.py) defines the schema used across the system:
+[parts_agent/models.py](file:///home/habilelabs/Development/CAS/backend/parts_agent/models.py) defines the schema used across the system:
 
 - **`VehicleProfile`**:
   ```python
@@ -163,7 +163,7 @@ flowchart TD
 
 ### 3.4 LLM & Heuristic Extraction Layer (`parts_agent/llm.py`)
 
-[parts_agent/llm.py](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/llm.py) extracts vehicle attributes and translates mechanic responses into dropdown values.
+[parts_agent/llm.py](file:///home/habilelabs/Development/CAS/backend/parts_agent/llm.py) extracts vehicle attributes and translates mechanic responses into dropdown values.
 
 #### Resilience Pipeline:
 ```mermaid
@@ -182,7 +182,7 @@ When a mechanic replies with ordinals (*"3"*, *"first one"*, *"teesra"*), colloq
 
 ### 3.5 Variant Disambiguation Engine (`parts_agent/variants.py`)
 
-[parts_agent/variants.py](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/variants.py) provides algorithmic decision-tree pruning for vehicle variants.
+[parts_agent/variants.py](file:///home/habilelabs/Development/CAS/backend/parts_agent/variants.py) provides algorithmic decision-tree pruning for vehicle variants.
 
 #### The Problem:
 A car model (like 2016 Mercedes E-Class) has dozens of variations in Boodmo's database:
@@ -194,7 +194,7 @@ A car model (like 2016 Mercedes E-Class) has dozens of variations in Boodmo's da
 - `5.5L E63 AMG / PETROL`
 
 #### The Mathematical Decomposition:
-[`parse_label()`](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/variants.py#L30) parses each raw variant string using regular expressions into 5 orthogonal dimensions:
+[`parse_label()`](file:///home/habilelabs/Development/CAS/backend/parts_agent/variants.py#L30) parses each raw variant string using regular expressions into 5 orthogonal dimensions:
 $$\text{Variant} = \langle \text{engine\_l}, \text{fuel}, \text{gearbox}, \text{trim}, \text{spec} \rangle$$
 
 #### Optimal Question Sequencing (`next_question()`):
@@ -210,10 +210,10 @@ Instead of asking arbitrary questions, the engine calculates the variance across
 
 ### 3.6 Boodmo Browser Adapter (`parts_agent/boodmo.py`)
 
-[parts_agent/boodmo.py](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/boodmo.py) automates the Boodmo website.
+[parts_agent/boodmo.py](file:///home/habilelabs/Development/CAS/backend/parts_agent/boodmo.py) automates the Boodmo website.
 
 #### Technical Details:
-- **Category Hierarchy**: Boodmo uses URL structure `/catalog/{category_id}-{category_slug}/`. The adapter maps colloquial names (*"headlight"*, *"tail light"*, *"oil filter"*) using a cached taxonomy in [`cache/boodmo_categories.json`](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/cache/boodmo_categories.json).
+- **Category Hierarchy**: Boodmo uses URL structure `/catalog/{category_id}-{category_slug}/`. The adapter maps colloquial names (*"headlight"*, *"tail light"*, *"oil filter"*) using a cached taxonomy in [`cache/boodmo_categories.json`](file:///home/habilelabs/Development/CAS/backend/cache/boodmo_categories.json).
 - **Sequential Dropdown Filling**:
   1. `Maker` (`select[name="makerId"]`)
   2. `Model Line` (`select[name="modelId"]`)
@@ -226,7 +226,7 @@ Instead of asking arbitrary questions, the engine calculates the variance across
 
 ### 3.7 AutoDukan Browser Adapter (`parts_agent/auto_dukan.py`)
 
-[parts_agent/auto_dukan.py](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/auto_dukan.py) automates AutoDukan's single-page React application.
+[parts_agent/auto_dukan.py](file:///home/habilelabs/Development/CAS/backend/parts_agent/auto_dukan.py) automates AutoDukan's single-page React application.
 
 #### Technical Details:
 - **MUI Custom Selects**: AutoDukan does not use standard HTML `<select>` tags. It renders Material-UI dropdowns (`div.MuiSelect-select`). The adapter clicks the element, waits for the floating `div.MuiPopover-root` popover to render in the DOM, and clicks the matching `li.MuiMenuItem-root`.
@@ -239,7 +239,7 @@ Instead of asking arbitrary questions, the engine calculates the variance across
 
 ### 3.8 Voice Subsystem (`parts_agent/voice.py`)
 
-[parts_agent/voice.py](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/voice.py) provides hands-free speech input and output.
+[parts_agent/voice.py](file:///home/habilelabs/Development/CAS/backend/parts_agent/voice.py) provides hands-free speech input and output.
 - **Speech-to-Text (STT)**: Records audio from the microphone via `arecord`, monitors RMS amplitude for speech silence detection, and transcribes the WAV audio using Gemini audio models.
 - **Text-to-Speech (TTS)**: Synthesizes voice audio via Gemini TTS models, with local fallback to `spd-say`.
 
@@ -247,7 +247,7 @@ Instead of asking arbitrary questions, the engine calculates the variance across
 
 ### 3.9 Terminal Video Recorder & Compositor (`parts_agent/terminal_recorder.py`)
 
-[parts_agent/terminal_recorder.py](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/terminal_recorder.py) is a custom engine built to record the CLI conversation side-by-side with browser automation.
+[parts_agent/terminal_recorder.py](file:///home/habilelabs/Development/CAS/backend/parts_agent/terminal_recorder.py) is a custom engine built to record the CLI conversation side-by-side with browser automation.
 
 #### How It Works:
 1. Playwright starts a headless Chromium page loaded with a styled dark-mode terminal HTML template (`TERMINAL_HTML`).
@@ -288,7 +288,7 @@ matches = [best]  # Arbitrarily picked the first option!
 #### Fix:
 1. **Removed the guessing fallback**: In `parts_agent/auto_dukan.py`, if multiple variants match the mechanic's current input and `boodmo_variant` is not yet available, `matches` remains empty, forcing AutoDukan to register a `NeedInput(field="variant")`.
 2. **LangGraph Variant Coordination**: In `parts_agent/graph.py`, while Boodmo is navigating its variant tree, AutoDukan's variant question is suppressed.
-3. **Cross-Adapter Propagator**: When Boodmo and the mechanic resolve the exact modification (e.g., `MERCEDES-BENZ E-CLASS 2016 3.0L E350 CDI/Diesel/OM 642.852`), it is injected into `profile.hints["boodmo_variant"]`. AutoDukan's [`_score_best_variant()`](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/auto_dukan.py#L115) compares word overlap and selects `3.0L E350 CDI / DIESEL` automatically.
+3. **Cross-Adapter Propagator**: When Boodmo and the mechanic resolve the exact modification (e.g., `MERCEDES-BENZ E-CLASS 2016 3.0L E350 CDI/Diesel/OM 642.852`), it is injected into `profile.hints["boodmo_variant"]`. AutoDukan's [`_score_best_variant()`](file:///home/habilelabs/Development/CAS/backend/parts_agent/auto_dukan.py#L115) compares word overlap and selects `3.0L E350 CDI / DIESEL` automatically.
 
 ---
 
@@ -298,12 +298,12 @@ matches = [best]  # Arbitrarily picked the first option!
 Boodmo returned exact-fitting parts (`fit: verified`), but AutoDukan returned `fit: unverified` and displayed unrelated items (e.g. BMW headlights for a Mercedes).
 
 #### Cause:
-1. **URL Redirect Reset**: On AutoDukan, after selecting the vehicle and clicking `Find Parts`, the browser reached `https://autodukan.com/products-list?car_model_id=24103`. However, [`_select_category()`](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/auto_dukan.py) called `await self._goto(f"{self.base_url}/category")` and navigated to `/products/lighting/headlight?page=1` **without** `car_model_id`. This wiped out the vehicle selection and searched site-wide across 6,600 headlights.
+1. **URL Redirect Reset**: On AutoDukan, after selecting the vehicle and clicking `Find Parts`, the browser reached `https://autodukan.com/products-list?car_model_id=24103`. However, [`_select_category()`](file:///home/habilelabs/Development/CAS/backend/parts_agent/auto_dukan.py) called `await self._goto(f"{self.base_url}/category")` and navigated to `/products/lighting/headlight?page=1` **without** `car_model_id`. This wiped out the vehicle selection and searched site-wide across 6,600 headlights.
 2. **Hardcoded Fitment**: AutoDukan listings were hardcoded to `fitment="unverified"`.
 
 #### Fix:
 1. **Preserve `self._car_model_id`**: Added state variable `self._car_model_id` captured from the post-submission URL.
-2. **Targeted Routing**: Added [`_slug_for_category()`](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/auto_dukan.py#L140) to route directly to:
+2. **Targeted Routing**: Added [`_slug_for_category()`](file:///home/habilelabs/Development/CAS/backend/parts_agent/auto_dukan.py#L140) to route directly to:
    ```
    https://autodukan.com/products-list/{slug}?car_model_id={self._car_model_id}
    ```
@@ -346,11 +346,11 @@ AutoDukan mapped `"Mercedes"` to `"MERCEDES-BENZ"` correctly, but Boodmo crashed
 
 ### Resiliency Enhancements: Commercial Vehicle Guard, Category Expansion & Generic Search Fallback
 
-1. **Commercial Vehicle Guard ([`parts_agent/llm.py`](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/parts_agent/llm.py))**:
+1. **Commercial Vehicle Guard ([`parts_agent/llm.py`](file:///home/habilelabs/Development/CAS/backend/parts_agent/llm.py))**:
    - Small Commercial Vehicles (SCVs) and Light Commercial Vehicles (LCVs) like Tata Ace, Ashok Leyland Dost, and Bolero Maxi Truck are excluded from passenger car dropdown trees.
    - `check_commercial_vehicle()` proactively detects them and announces:
      *"Tata Ace is a commercial vehicle. AutoDukan and Boodmo only list passenger cars and SUVs."*
-2. **Category Taxonomy Expansion ([`cache/boodmo_categories.json`](file:///home/habilelabs/Development/Convo_AI_Sourcing_Agent/cache/boodmo_categories.json))**:
+2. **Category Taxonomy Expansion ([`cache/boodmo_categories.json`](file:///home/habilelabs/Development/CAS/backend/cache/boodmo_categories.json))**:
    - Expanded leaf and part mappings for high-frequency replacement parts: `spark_plug`, `wiper_blade`, `battery`, `clutch_set`, `radiator`, `horn`.
    - AutoDukan's `_slug_for_category()` was synchronized to handle all of these categories without 404s.
 3. **Generic Search Fallback**:

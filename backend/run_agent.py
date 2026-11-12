@@ -14,6 +14,11 @@ from pathlib import Path
 import sys
 import uuid
 
+# Ensure backend directory is in sys.path
+_backend_dir = str(Path(__file__).resolve().parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 from parts_agent.graph import Conversation, SESSIONS, close_session, open_session, save_run
 from parts_agent.terminal_recorder import TerminalRecorder, compose_3in1_video, compose_split_video
 

@@ -9,20 +9,44 @@ fitment filter. AutoDukan results remain unverified because exact product compat
 This extends the *Hybrid Vendor Search Architecture* in `docs/`. It is the "approved browser workflow" adapter
 plus the LangGraph "ask missing questions" step, moved to the point where the site actually asks.
 
+## Repository Structure
+
+- **`backend/`**: Core AI sourcing agent, FastAPI server, browser automation adapters, LangGraph pipeline, and test suites.
+- **`frontend/`**: React 18 + Vite + Tailwind CSS dashboard with real-time SSE streaming, voice recording, and interactive procurement cards.
+- **`docs/`**: Comprehensive architecture guides, workflow specifications, and onboarding documents.
+
 ## Run it
 
+### Backend Setup
+
 ```bash
+cd backend
 pip3 install -r requirements.txt
 python3 -m playwright install chromium
 ```
 
-`.env` needs `GEMINI_API_KEY` and `GEMINI_MODEL` (already present).
+`.env` needs `GEMINI_API_KEY` and `GEMINI_MODEL` (configured in `backend/.env` or project root).
 
 ```bash
+# Run CLI Agent (from backend directory)
 python3 run_agent.py                      # type the request and answers
 python3 run_agent.py --voice              # speak; it talks back (hands-free, stops on silence)
 python3 run_agent.py --show-browser       # watch Chromium drive all suppliers
 python3 run_agent.py --say "Harrier ka oil filter chahiye, 2021 diesel automatic" --answers "teesra"
+
+# Run FastAPI Server (from backend directory)
+uvicorn server:app --host 0.0.0.0 --port 8000 --reload
+
+# Run Tests (from backend directory)
+python3 -m unittest discover tests
+```
+
+### Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm run dev                               # opens Vite dev server at http://localhost:5173
 ```
 
 Example (real output, trimmed):
@@ -59,13 +83,14 @@ understand ──► navigate ──(a site needs input)──► [pause] interp
 
 | File | Role |
 |---|---|
-| `parts_agent/boodmo.py` | Browser adapter: category lookup, vehicle selector, listings, seller/stock from product pages (4 tabs in parallel) |
-| `parts_agent/auto_dukan.py` | Browser adapter: AutoDukan category tree, vehicle selector, product extraction, and detail enrichment (3 pages in parallel) |
-| `parts_agent/variants.py` | Breaks variant labels like `2.0L XZA+ AT/Diesel/BS6` into attributes and picks the next question |
-| `parts_agent/graph.py` | LangGraph loop, independent supplier profiles and concurrent navigation/search, summary, audit record |
-| `parts_agent/llm.py` | Gemini request parsing and answer matching, with async wrappers and a model fallback chain |
-| `parts_agent/voice.py` | Gemini TTS (rotating models, `spd-say` fallback), mic capture with silence detection, Gemini transcription |
-| `run_agent.py` | CLI for text or voice |
+| `backend/server.py` | FastAPI REST & SSE backend serving real-time event streaming and dashboard APIs |
+| `backend/run_agent.py` | CLI for interactive terminal runs (text or voice mode) |
+| `backend/parts_agent/boodmo.py` | Browser adapter: category lookup, vehicle selector, listings, seller/stock from product pages (4 tabs in parallel) |
+| `backend/parts_agent/auto_dukan.py` | Browser adapter: AutoDukan category tree, vehicle selector, product extraction, and detail enrichment (3 pages in parallel) |
+| `backend/parts_agent/variants.py` | Breaks variant labels like `2.0L XZA+ AT/Diesel/BS6` into attributes and picks the next question |
+| `backend/parts_agent/graph.py` | LangGraph loop, independent supplier profiles and concurrent navigation/search, summary, audit record |
+| `backend/parts_agent/llm.py` | Gemini request parsing and answer matching, with async wrappers and a model fallback chain |
+| `backend/parts_agent/voice.py` | Gemini TTS (rotating models, `spd-say` fallback), mic capture with silence detection, Gemini transcription |
 
 For the current voice flow and the steps to connect it to a phone call, see [Voice and phone call integration](docs/VOICE_AND_PHONE_CALL_INTEGRATION.md).
 

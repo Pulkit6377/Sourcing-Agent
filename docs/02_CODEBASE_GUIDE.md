@@ -31,53 +31,64 @@ CAS / Convo_AI_Sourcing_Agent
 │   │   ├── setupTests.js           # JSDOM environment polyfills
 │   │   └── index.css               # Tailwind CSS & custom scrollbar styles
 │   └── dist/                       # Compiled production build served by FastAPI
-├── parts_agent/                    # Core Python Agent Backend
-│   ├── __init__.py
-│   ├── models.py                   # Data contracts: VehicleProfile, Listing, NeedInput
-│   ├── llm.py                      # Multi-tier Gemini inference, assembly guards, STT
-│   ├── graph.py                    # LangGraph conversational DAG state machine
-│   ├── boodmo.py                   # Boodmo Playwright scraper & category navigator
-│   ├── auto_dukan.py               # AutoDukan Playwright scraper & selector resolver
-│   └── voice.py                    # Audio processing and format conversions
-├── runs/                           # Audit logs of historical search sessions in JSON format
-├── tests/                          # Automated unit, integration, and scenario tests
-│   ├── test_50_cases.py            # 50 comprehensive test cases
-│   ├── test_api_integration.py     # Deterministic FastAPI TestClient endpoint integration tests
-│   ├── test_unit.py                # Core unit tests (models, adapters, regexes, offline taxonomy)
-│   ├── test_negative.py            # Negative & edge-case tests
-│   ├── test_relevance.py           # Product relevance & classification tests
-│   └── test_dashboard_scenarios.py # Multi-supplier workflow tests
+├── backend/                        # Complete Backend (Agent, Server, Tests, Data)
+│   ├── parts_agent/                # Core Python Agent Backend
+│   │   ├── __init__.py
+│   │   ├── models.py               # Data contracts: VehicleProfile, Listing, NeedInput
+│   │   ├── llm.py                  # Multi-tier Gemini inference, assembly guards, STT
+│   │   ├── graph.py                # LangGraph conversational DAG state machine
+│   │   ├── boodmo.py               # Boodmo Playwright scraper & category navigator
+│   │   ├── auto_dukan.py           # AutoDukan Playwright scraper & selector resolver
+│   │   ├── relevance.py            # Relevance classification and ranking engine
+│   │   ├── terminal_recorder.py    # Terminal video recorder and compositor
+│   │   ├── variants.py             # Variant disambiguation engine
+│   │   └── voice.py                # Audio processing and format conversions
+│   ├── server.py                   # FastAPI application serving REST, SSE, and frontend
+│   ├── run_agent.py                # CLI testing harness for interactive terminal runs
+│   ├── requirements.txt            # Python dependencies
+│   ├── data/                       # Verified catalogs (boodmo_catalog.json)
+│   ├── cache/                      # Offline category caches
+│   ├── runs/                       # Audit logs of historical search sessions in JSON format
+│   └── tests/                      # Automated unit, integration, and scenario tests
+│       ├── test_50_cases.py        # 50 comprehensive test cases
+│       ├── test_api_integration.py # Deterministic FastAPI TestClient endpoint integration tests
+│       ├── test_unit.py            # Core unit tests (models, adapters, regexes, offline taxonomy)
+│       ├── test_negative.py        # Negative & edge-case tests
+│       ├── test_relevance.py       # Product relevance & classification tests
+│       ├── test_dashboard_scenarios.py # Multi-supplier workflow tests
+│       └── test_swift_clutch_live.py # Live clutch search verification
+├── docs/                           # Architecture guides and onboarding documents
 ├── CHANGELOG.md                    # Keep a Changelog compliant project history
-├── server.py                       # FastAPI application serving REST, SSE, and frontend
-└── run_agent.py                    # CLI testing harness for interactive terminal runs
+├── STUDY_GUIDE.md                  # Comprehensive architectural deep dive
+└── README.md                       # Project overview and run guide
 ```
 
 ---
 
-## 2. Core Python Modules (`parts_agent/`)
+## 2. Core Python Modules (`backend/parts_agent/`)
 
-### 1. Data Contracts: [`parts_agent/models.py`](file:///home/habilelabs/Development/CAS/parts_agent/models.py)
+### 1. Data Contracts: [`backend/parts_agent/models.py`](file:///home/habilelabs/Development/CAS/backend/parts_agent/models.py)
 Defines type-safe dataclasses used across the graph, adapters, and frontend:
 - **`VehicleProfile`**: Stores vehicle attributes (`maker`, `model`, `year`, `variant`), candidate filters, and unverified speech hints.
 - **`NeedInput`**: Represents an active clarifying question posed to the mechanic. Contains `field`, `question`, and `options` (clickable chips or dropdowns).
 - **`Listing`**: Represents a single spare part scraped from a supplier. Contains `title`, `brand`, `part_number`, `price`, `mrp`, `url`, `origin`, `fitment`, `available`, and `relevance` (`EXACT_MATCH`, `COMPONENT`, `ACCESSORY`, `IRRELEVANT`).
 - **`SearchOutcome`**: The result of a supplier extraction run containing vendor name, status (`ok`, `no_results`, `failed`), listings list, and message.
 
-### 2. LLM & Guardrails: [`parts_agent/llm.py`](file:///home/habilelabs/Development/CAS/parts_agent/llm.py)
+### 2. LLM & Guardrails: [`backend/parts_agent/llm.py`](file:///home/habilelabs/Development/CAS/backend/parts_agent/llm.py)
 Handles all generative AI operations and strict safety guards:
 - **`check_major_assembly(part_text)`**: Intercepts requests for complete crate assemblies (`gearbox`, `engine`). Returns 12 official subcategories for gearboxes or 5 service components for engines.
 - **`check_commercial_vehicle(text)`**: Identifies commercial vehicles (`Tata Ace`, `Ashok Leyland Dost`, `Tata 407`) and warns that suppliers prioritize passenger cars.
 - **`generate_async(prompt)`**: Executes Gemini calls with automatic fallback from `gemini-3.8-flash` to `gemini-3.5-flash-lite`.
 - **`match_option_locally(answer, options)`**: Fast-path fuzzy matching for user replies against website dropdown options without invoking an API call.
 
-### 3. State Machine & Graph: [`parts_agent/graph.py`](file:///home/habilelabs/Development/CAS/parts_agent/graph.py)
+### 3. State Machine & Graph: [`backend/parts_agent/graph.py`](file:///home/habilelabs/Development/CAS/backend/parts_agent/graph.py)
 The central intelligence coordinator implemented as a LangGraph state machine:
 - Manages conversational memory across multiple turns.
 - Synchronizes shared facts (make, model, year) between Boodmo and AutoDukan.
 - Passes Boodmo-resolved variant signatures into AutoDukan (`hints["boodmo_variant"]`) to eliminate duplicate user questions.
 - Aggregates scraped listings, executes relevance scoring, and triggers summary announcements.
 
-### 4. Boodmo Adapter: [`parts_agent/boodmo.py`](file:///home/habilelabs/Development/CAS/parts_agent/boodmo.py)
+### 4. Boodmo Adapter: [`backend/parts_agent/boodmo.py`](file:///home/habilelabs/Development/CAS/backend/parts_agent/boodmo.py)
 Automates Boodmo's marketplace (`https://boodmo.com`):
 - **Offline Taxonomy Engine**: Resolves part names using `data/boodmo_catalog.json` (450 verified subcategories) with zero live network calls, eliminating 25-45 second page timeouts.
 - **Canonical URL Mapping**: Maps canonical IDs cleanly (`Radiator` -> `/catalog/3731-radiator/`, `Fuel Pump` -> `/catalog/3620-fuel_pump/`).
@@ -86,7 +97,7 @@ Automates Boodmo's marketplace (`https://boodmo.com`):
 - **Multi-Tab Product Enrichment (`_enrich`)**: Concurrently enriches top product listings using headless Playwright tabs to verify seller name, dispatch timeline, and live stock.
 - **Part Number Unmasking**: Unmasks protected OEM part numbers (`KLP...9AA`) using URL slug analysis.
 
-### 5. AutoDukan Adapter: [`parts_agent/auto_dukan.py`](file:///home/habilelabs/Development/CAS/parts_agent/auto_dukan.py)
+### 5. AutoDukan Adapter: [`backend/parts_agent/auto_dukan.py`](file:///home/habilelabs/Development/CAS/backend/parts_agent/auto_dukan.py)
 Automates AutoDukan's distributor portal (`https://autodukan.com`):
 - Interacts with Material-UI (MUI) dynamic comboboxes for Brand, Model, Year, and Variant.
 - Contains brand aliasing (e.g., mapping `"Mercedes"` to `"MERCEDES-BENZ"`).
@@ -95,7 +106,7 @@ Automates AutoDukan's distributor portal (`https://autodukan.com`):
 
 ---
 
-## 3. Web Server & Streaming: [`server.py`](file:///home/habilelabs/Development/CAS/server.py)
+## 3. Web Server & Streaming: [`backend/server.py`](file:///home/habilelabs/Development/CAS/backend/server.py)
 
 Built on FastAPI, the server provides:
 - **`POST /api/chat/start`**: Initiates a new sourcing session. Accepts mechanic message, thread ID, and headless browser preference.

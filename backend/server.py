@@ -12,12 +12,18 @@ import json
 import logging
 import os
 import subprocess
+import sys
 import tempfile
 import time
 import uuid
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, List, Optional
+
+# Ensure backend directory is in sys.path
+_backend_dir = str(Path(__file__).resolve().parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -38,7 +44,13 @@ from parts_agent.graph import (
 )
 from parts_agent.models import Listing, NeedInput, SearchOutcome, VehicleProfile
 
-load_dotenv(Path(__file__).resolve().parent / ".env")
+# Load .env from backend directory or project root
+for env_path in [
+    Path(__file__).resolve().parent / ".env",
+    Path(__file__).resolve().parent.parent / ".env",
+]:
+    if env_path.exists():
+        load_dotenv(env_path)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -646,10 +658,13 @@ async def reset_session(payload: Dict[str, str]):
 # -----------------------------------------------------------------
 # Static files serving for frontend build (if built)
 # -----------------------------------------------------------------
-FRONTEND_DIST = Path(__file__).resolve().parent / "frontend" / "dist"
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+if not FRONTEND_DIST.exists():
+    FRONTEND_DIST = Path(__file__).resolve().parent / "frontend" / "dist"
 if FRONTEND_DIST.exists():
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+    app_target = "server:app" if Path("server.py").exists() else "backend.server:app"
+    uvicorn.run(app_target, host="0.0.0.0", port=8000, reload=True)

@@ -4,6 +4,12 @@ Executes conversational sourcing for Maruti Swift clutch plates,
 follows up on vehicle details (year, fuel, variant, category),
 extracts products from suppliers, and displays the classified & ranked comparison results.
 """
+import sys
+from pathlib import Path
+_backend_dir = str(Path(__file__).resolve().parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 import asyncio
 import json
 import logging

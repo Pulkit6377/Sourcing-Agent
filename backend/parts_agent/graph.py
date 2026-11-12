@@ -33,6 +33,10 @@ from .models import NeedInput, SearchOutcome, VehicleProfile
 
 log = logging.getLogger(__name__)
 RUNS = Path(__file__).resolve().parent.parent / "runs"
+if not RUNS.exists():
+    _alt_runs = Path(__file__).resolve().parent.parent.parent / "runs"
+    if _alt_runs.exists():
+        RUNS = _alt_runs
 
 
 # ---------------------------------------------------------------- session registry

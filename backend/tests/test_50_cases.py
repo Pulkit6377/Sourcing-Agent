@@ -11,6 +11,12 @@ Covers:
 8. Procurement Recommendation & Commercial Vehicle Guard (TC-46 to TC-50)
 """
 
+import sys
+from pathlib import Path
+_backend_dir = str(Path(__file__).resolve().parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 import unittest
 from unittest.mock import AsyncMock, MagicMock
 import re

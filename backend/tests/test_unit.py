@@ -1,6 +1,12 @@
 """Deterministic unit tests; no network, browser, Gemini key, or microphone needed."""
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+_backend_dir = str(Path(__file__).resolve().parent.parent)
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
 import io
 import unittest
 import wave
