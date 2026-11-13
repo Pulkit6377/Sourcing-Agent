@@ -49,6 +49,10 @@ npm install
 npm run dev                               # opens Vite dev server at http://localhost:5173
 ```
 
+### Production Deployment (Vercel + Container Backend)
+
+For step-by-step instructions on deploying the React dashboard to **Vercel** and the FastAPI/Playwright agent to a persistent container (Render/Railway/Docker), see [docs/DEPLOYMENT_VERCEL.md](docs/DEPLOYMENT_VERCEL.md).
+
 Example (real output, trimmed):
 
 ```
